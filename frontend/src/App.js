@@ -1,9 +1,9 @@
-import React, {useState, useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import "./App.css";
 import {AgGridReact} from "ag-grid-react";
 import "ag-grid-community/dist/styles/ag-grid.css";
 import "ag-grid-community/dist/styles/ag-theme-material.min.css";
-import {Grid, Button} from "@material-ui/core";
+import {Button, Grid} from "@material-ui/core";
 import FormDialog from "./components/dialog";
 import UserDataService from "../src/services/UserDataService";
 //import axios from "axios";
@@ -12,25 +12,15 @@ import UserDataService from "../src/services/UserDataService";
 const initialValue = {fullName: "", email: "", phone: "", dob: ""};
 
 // Main Funciton
-function App(message) {
+const App = () => {
     // eslint-disable-next-line
     const [gridApi, setGridApi] = useState(null);
-    const [tableData, setTableData] = useState(null);
+    const [rowData, setRowData] = useState(null);
     const [open, setOpen] = React.useState(false);
     const [formData, setFormData] = useState(initialValue);
 
-    // add user button popup form onClick event
-    const handleClickOpen = () => {
-        setOpen(true);
-    };
-
-    // form close
-    const handleClose = () => {
-        setOpen(false);
-        setFormData(initialValue);
-    };
-
-    const columnDefs = [
+    // eslint-disable-next-line
+    const [columnDefs, setColumnDefs] = useState([
         {headerName: "ID", field: "user_id"},
         {headerName: "Name", field: "fullName"},
         {headerName: "Email", field: "email"},
@@ -58,7 +48,7 @@ function App(message) {
                 </div>
 
         }
-    ];
+    ]);
 
 
     //  first time getUsers
@@ -71,8 +61,19 @@ function App(message) {
         UserDataService.getAll()
             .then((response) => {
                 console.log(response.data)
-                setTableData(response.data)
+                setRowData(response.data)
             })
+    };
+
+    // add user button popup form onClick event
+    const handleClickOpen = () => {
+        setOpen(true);
+    };
+
+    // form close
+    const handleClose = () => {
+        setOpen(false);
+        setFormData(initialValue);
     };
 
     // updating data and opening pop up window
@@ -164,8 +165,6 @@ function App(message) {
     };
 
 
-
-
     const defaultColDef = {
         sortable: true,
         flex: 1,
@@ -176,7 +175,6 @@ function App(message) {
     return (
 
         <div className="App">
-
             <h1 align="center">for-devs.com</h1>
             <h2>React, AgGrid, Material UI, Spring Boot, Data JPA, PostgresSQL,And Maven Example Application</h2>
 
@@ -189,7 +187,7 @@ function App(message) {
 
             <div className="ag-theme-material" style={{height: "400px"}}>
                 <AgGridReact
-                    rowData={tableData}
+                    rowData={rowData}
                     columnDefs={columnDefs}
                     defaultColDef={defaultColDef}
                     onGridReady={onGridReady}
