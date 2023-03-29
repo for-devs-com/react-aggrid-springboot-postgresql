@@ -1,23 +1,28 @@
-import React, {useState, useEffect} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import "./App.css";
 import {AgGridReact} from "ag-grid-react";
+import "ag-grid-enterprise";
 import "ag-grid-community/dist/styles/ag-grid.css";
+import "ag-grid-community/dist/styles/ag-theme-alpine.css";
 import "ag-grid-community/dist/styles/ag-theme-material.min.css";
-import {Grid, Button} from "@material-ui/core";
-import FormDialog from "./components/dialog";
-import UserDataService from "../src/services/UserDataService";
-//import axios from "axios";
+import {Button, Grid} from "@material-ui/core";
+import {FormDialog} from "./components/FormDialog";
+import StudentDataService from "./services/StudentDataService";
+import Dashboard from "./components/dashboard";
 
-// initial data values in form 
-const initialValue = {fullName: "", email: "", phone: "", dob: ""};
 
-// Main Funciton
-function App(message) {
-    // eslint-disable-next-line
-    const [gridApi, setGridApi] = useState(null);
-    const [tableData, setTableData] = useState(null);
-    const [open, setOpen] = React.useState(false);
-    const [formData, setFormData] = useState(initialValue);
+// Main Function
+function App() {
+
+
+    // initial data values in form
+    const initialValue = {fullName: "", email: "", phone: "", birthDate: "", isActive: false};
+    const gridRef = useRef();
+    const [gridApi, setGridApi] = useState();
+    const [tableData, setTableData] = useState();
+    const [openDialogForm, setOpen] = React.useState(false);
+    const [formState, setFormState] = useState(initialValue)
+
 
     // add user button popup form onClick event
     const handleClickOpen = () => {
@@ -27,27 +32,38 @@ function App(message) {
     // form close
     const handleClose = () => {
         setOpen(false);
-        setFormData(initialValue);
+        setFormState(initialValue);
     };
 
-    const columnDefs = [
-        {headerName: "ID", field: "user_id"},
+    // default column definition
+    const defaultColDef = useMemo(() => {
+        return {
+            // set the default column width
+            width: 150,
+            // make every column editable
+            editable: true,
+            // make every column use 'text' filter by default
+            filter: 'agTextColumnFilter',
+            // enable floating filters by default
+            floatingFilter: true,
+            // make columns resizable
+            resizable: true,
+        };
+    }, []);
+
+    // column definitions for grid
+    const [columnDefs, setColumnsDefs] = useState([
+        {headerName: "ID", field: "studentID"},
         {headerName: "Name", field: "fullName"},
         {headerName: "Email", field: "email"},
-        {headerName: "phone", field: "phone"},
-        {headerName: "Date of Birth", field: "dob"},
+        {headerName: "Phone", field: "phone"},
+        {headerName: "Date of Birth", field: "birthDate"},
+        {headerName: "State", field: "isActive"},
         {
-            headerName: "Actions", field: "user_id",
+            headerName: "Actions", field: "studentID",
+
             cellRendererFramework: (params) =>
                 <div>
-                    <Button
-                        variant="outlined"
-                        color="primary"
-                        onClick={() => handleUpdate(params.data)}
-                    >
-                        Update
-                    </Button>
-
                     <Button
                         variant="outlined"
                         color="secondary"
@@ -57,154 +73,155 @@ function App(message) {
                     </Button>
                 </div>
 
-        }
-    ];
+        }]);
 
 
-    //  first time getUsers
+    //  first time getStudents
     useEffect(() => {
-        getUsers();
+        getStudents();
     }, []);
 
-    // Fetching user data from server
-    const getUsers = () => {
-        UserDataService.getAll()
+    // Fetching students data from server
+    const getStudents = () => {
+        StudentDataService.getAll()
             .then((response) => {
-                console.log(response.data)
+                console.log("getStudent Response: ", response.data)
                 setTableData(response.data)
             })
     };
 
-    // updating data and opening pop up window
-    const handleUpdate = (oldData) => {
-        setFormData(oldData);
-        handleClickOpen();
-    };
-
     //deleting a user
     const handleDelete = (id) => {
-        console.log('print id:', id)
+        console.log('handleDelete Content:', id);
         // delete confirmation message
-        const confirmation = window.confirm(
-            "Are you sure, you want to delete this row",
-            id
-        )
+        const confirmation = window.confirm("Are you sure, you want to delete this row?" + id);
 
         if (confirmation) {
-            UserDataService.delete(id).then((r) => r.data).then((r) => {
+            StudentDataService.delete(id).then((r) => r.data).then((r) => {
                 handleClose();
-                getUsers();
+                getStudents();
             })
         }
     };
 
+    // handleFormSubmit event in dialog form
     const handleFormSubmit = () => {
-        if (formData.id) {
+        if (formState.id) {
 
 
             // Alert message
-            const confirm = window.confirm(
-                "Are you sure, you want to update this row ?"
-            );
+            const confirm = window.confirm("Are you sure, you want to update this row ?" + formState.id);
 
             //  updating a user
-            confirm && UserDataService.update(formData.id)
+            confirm && StudentDataService.update(formState.id)
                 .then((r) => r.data)
                 .then(r => {
-                    setFormData(r.data)
+                    setFormState(r.data)
                     handleClose();
-                    getUsers()
+                    getStudents()
                 })
-            // fetch(url + `/${formData.id}`, {
-            //     method: "PUT",
-            //     body: JSON.stringify(formData),
-            //     headers: {
-            //         "content-type": "application/json",
-            //     },
-            // })
-            //     .then((resp) => resp.data)
-            //     .then((resp) => {
-            //         handleClose();
-            //         getUsers();
-            //     });
         } else {
 
             // adding new user
-            UserDataService.create(formData).then((r) => r.data).then((r) => {
-                //setFormData(r.data)
+            StudentDataService.create(formState).then((r) => r.data).then((r) => {
                 handleClose();
-                getUsers()
+                getStudents()
             })
 
-            // fetch(url, {
-            //     method: "POST",
-            //     body: JSON.stringify(formData),
-            //     headers: {
-            //         "content-type": "application/json",
-            //     },
-            // })
-            //     .then((resp) => resp.data)
-            //     .then((resp) => {
-            //         handleClose();
-            //         getUsers();
-            //     });
         }
     };
 
-    // onChange event in dialog form
-    const onChange = (e) => {
-        const {value = '', id} = e.target;
-        setFormData({...formData, [id]: value});
+    // handleInputChange event in dialog form
+    const handleInputChange = (event) => {
+        const {value = '', id} = event.target;
+        setFormState({...formState, [id]: value});
         console.log(value, id)
     };
 
-    // render grit when data exist
+    /*Handling check state*/
+    const handleCheckStatusChange = (event) => {
+        const {checked} = event.target;
+        setFormState({...formState, isActive: checked})
+    };
+
+    // render grid when data exist
     const onGridReady = (params) => {
-        setGridApi(params);
+        setGridApi(params.api)
+
     };
 
+    // Handling cell value changes
+    const handleCellValueChanged = useCallback(async (params) => {
+        const {data} = params;
+        const updatedData = {...data, [params.colDef.field]: params.newValue};
+
+        try {
+            await StudentDataService.update(data.studentID, updatedData);
+            getStudents();
+        } catch (error) {
+            console.error("Error updating cell value: ", error);
+        }
+    }, [getStudents]);
 
 
-
-    const defaultColDef = {
-        sortable: true,
-        flex: 1,
-        filter: true,
-        floatingFilter: true,
-    };
+    // Export as excel
+    const onBtExport = () => {
+        gridApi.exportDataAsExcel();
+    }
 
     return (
 
         <div className="App">
+            <Dashboard/>
 
-            <h1 align="center">for-devs.com</h1>
-            <h2>React, AgGrid, Material UI, Spring Boot, Data JPA, PostgresSQL,And Maven Example Application</h2>
 
-            {/* Material UI Grid Layout */}
-            <Grid align="right">
-                <Button variant="contained" color="primary" onClick={handleClickOpen}>
-                    Create User
-                </Button>
-            </Grid>
+            <Grid maxWidth="lg" align="center" container spacing={2}>
 
-            <div className="ag-theme-material" style={{height: "400px"}}>
-                <AgGridReact
-                    rowData={tableData}
-                    columnDefs={columnDefs}
-                    defaultColDef={defaultColDef}
-                    onGridReady={onGridReady}
+                {/* Material UI Grid Layout */}
+                <Grid item lg={12}>
+                    <div className="ag-theme-alpine" style={{height: 540, maxWidth: 1420}}>
+                        <AgGridReact
+                            rowData={tableData}
+                            columnDefs={columnDefs}
+                            defaultColDef={defaultColDef}
+                            onGridReady={onGridReady}
+                            ref={gridRef}
+                            pagination={true}
+                            paginationPageSize={10}
+                            onCellValueChanged={handleCellValueChanged}
+                        ></AgGridReact>
+                    </div>
+                </Grid>
+
+
+                {/*create student and export as excel buttons*/}
+                <Grid item lg={12}>
+                    <Button variant="contained" color="primary" onClick={handleClickOpen}>
+                        Create Student
+                    </Button>
+
+                    <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={onBtExport}
+                    >
+                        Export As Excel
+                    </Button>
+                </Grid>
+
+                {/*Dialog component*/}
+                <FormDialog
+                    openDialogForm={openDialogForm}
+                    handleClose={handleClose}
+                    data={formState}
+                    onChange={handleInputChange}
+                    handleFormSubmit={handleFormSubmit}
+                    switchState={handleCheckStatusChange}
                 />
-            </div>
 
-            <FormDialog
-                open={open}
-                handleClose={handleClose}
-                data={formData}
-                onChange={onChange}
-                handleFormSubmit={handleFormSubmit}
-            />
-        </div>
-    );
+            </Grid>
+        </div>)
+        ;
 }
 
 export default App;
